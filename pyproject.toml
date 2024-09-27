@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "backend"
+version = "0.1.0"
+description = ""
+authors = ["Alexander Morales-Panitz <alexander@moralespanitz.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"  # Updated to allow Python 3.11
+django = "^5.1.1"
+djangorestframework = "^3.15.2"
+django-environ = "^0.11.2"
+pyjwt = "^2.9.0"
+requests = "^2.32.3"
+cryptography = "^43.0.1"
+pytz = "^2024.2"
+python-dotenv = "^1.0.1"
+psycopg2-binary = "^2.9.9"
+gunicorn = "^23.0.0"
+whitenoise = "^6.7.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
