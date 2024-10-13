@@ -99,7 +99,7 @@ class PagosPrestamosViewSet(viewsets.ModelViewSet):
                     payment_amount = instance.custom_amount
                 
                 if prestamo.loan_type == PrestamoType.CUOTA_REBATIR:
-                    prestamo.remaining_amount -= payment_amount
+                    prestamo.remaining_amount -= (prestamo.amount / prestamo.number_of_installments)
                     prestamo.monthly_payment = (prestamo.monthly_interest * prestamo.remaining_amount) + (prestamo.amount / prestamo.number_of_installments)
 
                 elif prestamo.loan_type == PrestamoType.CUOTA_FIJA:
@@ -110,11 +110,13 @@ class PagosPrestamosViewSet(viewsets.ModelViewSet):
                         raise ValueError("Custom amount is required for variable payment loans")
 
                     if prestamo.remaining_installments == 1:
-                        if instance.custom_amount != prestamo.remaining_amount:
-                            raise ValueError("Last payment must be the remaining amount")
+                        if instance.custom_amount != prestamo.remaining_amount + (prestamo.monthly_interest * prestamo.remaining_amount):
+                            raise ValueError("Last payment must be the remaining amount plus interest")
                         prestamo.remaining_amount = 0
                     else:
-                        prestamo.remaining_amount -= instance.custom_amount
+                        interest_payment = prestamo.monthly_interest * prestamo.remaining_amount
+                        capital = instance.custom_amount - interest_payment
+                        prestamo.remaining_amount -= capital
 
                 elif prestamo.loan_type == PrestamoType.CUOTA_VENCIMIENTO:
                     if prestamo.remaining_amount is None or prestamo.monthly_payment is None:
@@ -122,6 +124,7 @@ class PagosPrestamosViewSet(viewsets.ModelViewSet):
                     
                     if prestamo.remaining_installments == 1:
                         prestamo.monthly_payment = prestamo.amount * prestamo.monthly_interest + prestamo.amount
+                        prestamo.remaining_amount = 0
                     elif prestamo.remaining_installments > 2:
                         prestamo.monthly_payment = prestamo.amount * prestamo.monthly_interest
                     else:
