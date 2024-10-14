@@ -111,13 +111,19 @@ class PagosPrestamosViewSet(viewsets.ModelViewSet):
                         raise ValueError("Custom amount is required for variable payment loans")
 
                     if prestamo.remaining_installments == 1:
-                        if instance.custom_amount != prestamo.remaining_amount + (prestamo.monthly_interest * prestamo.remaining_amount):
-                            raise ValueError("Last payment must be the remaining amount plus interest")
+                        prestamo.monthly_payment = prestamo.remaining_amount * prestamo.monthly_interest + prestamo.remaining_amount
                         prestamo.remaining_amount = 0
+                        instance.custom_amount = prestamo.monthly_payment
+                        instance.save()
+                        # if instance.custom_amount != prestamo.remaining_amount + (prestamo.monthly_interest * prestamo.remaining_amount):
+                        #     raise ValueError("Last payment must be the remaining amount plus interest")
                     else:
                         interest_payment = prestamo.monthly_interest * prestamo.remaining_amount
                         capital = instance.custom_amount - interest_payment
+                        prestamo.monthly_payment = capital + interest_payment
                         prestamo.remaining_amount -= capital
+                        instance.custom_amount = capital
+                        instance.save()
 
                 elif prestamo.loan_type == PrestamoType.CUOTA_VENCIMIENTO:
                     if prestamo.remaining_amount is None or prestamo.monthly_payment is None:
