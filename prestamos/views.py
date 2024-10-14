@@ -124,7 +124,6 @@ class PagosPrestamosViewSet(viewsets.ModelViewSet):
                         capital = instance.custom_amount - interest_payment
                         prestamo.monthly_payment = capital + interest_payment
                         prestamo.remaining_amount -= capital
-                        instance.custom_amount = capital
                         instance.save()
 
                 elif prestamo.loan_type == PrestamoType.CUOTA_VENCIMIENTO:
