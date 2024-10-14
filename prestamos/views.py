@@ -93,6 +93,8 @@ class PagosPrestamosViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 instance = serializer.save()
                 prestamo = instance.prestamo
+                if prestamo.remaining_installments == 0:
+                    raise ValueError("No remaining installments")
                 if instance.custom_amount is None:
                     payment_amount = prestamo.monthly_payment
                 else:
