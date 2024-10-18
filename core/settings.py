@@ -105,11 +105,14 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DATABASE_NAME'),
-        'USER': os.environ.get('DATABASE_USER'),
-        'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
-        'HOST': os.environ.get('DATABASE_HOST'),
-        'PORT': os.environ.get('DATABASE_PORT', '5432'),
+        'NAME': 'unicas_db_bm62',
+        'USER': 'unicas_db_bm62_user',
+        'PASSWORD': '3Y1YkLPZYwz7bE5gTfiPkTtnjMB0fKOk',
+        'HOST': 'dpg-cs95p23qf0us738jrlvg-a.oregon-postgres.render.com',
+        'PORT': 5432,
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
     }
 }
 
