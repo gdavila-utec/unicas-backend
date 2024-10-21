@@ -1,11 +1,11 @@
 # middleware.py
 import datetime
+import logging
 
 from dotenv import load_dotenv
 import jwt
 import pytz
 import requests
-# from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from users.models import CustomUser as User
 from django.core.cache import cache
@@ -20,9 +20,10 @@ User = get_user_model()
 CLERK_API_URL = "https://api.clerk.com/v1"
 CLERK_FRONTEND_API_URL = os.getenv("CLERK_FRONTEND_API_URL")
 CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
-CLERK_JWKS_URL=os.getenv("CLERK_JWKS_URL")
+CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL")
 CACHE_KEY = "jwks_data"
 
+logger = logging.getLogger(__name__)
 
 class JWTAuthenticationMiddleware(BaseAuthentication):
     def authenticate(self, request):
@@ -31,40 +32,56 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
             return None
         try:
             token = auth_header.split(" ")[1]
+            logger.info(f"Received token: {token}")  # Log the token
         except IndexError:
             raise AuthenticationFailed("Bearer token not provided.")
         user = self.decode_jwt(token)
-        clerk = ClerkSDK()
-        info, found = clerk.fetch_user_info(user.username)
         if not user:
             return None
-        else:
-            if found:
-                user.email = info["email_address"]
-                user.first_name = info["first_name"]
-                user.last_name = info["last_name"]
-                user.last_login = info["last_login"]
+        
+        clerk = ClerkSDK()
+        info, found = clerk.fetch_user_info(user.username)
+        if found:
+            user.email = info["email_address"]
+            user.first_name = info["first_name"]
+            user.last_name = info["last_name"]
+            user.last_login = info["last_login"]
             user.save()
 
         return user, None
 
     def decode_jwt(self, token):
         clerk = ClerkSDK()
-        jwks_data = clerk.get_jwks()
-        public_key = RSAAlgorithm.from_jwk(jwks_data["keys"][0])
         try:
+            jwks_data = clerk.get_jwks()
+            token_header = jwt.get_unverified_header(token)
+            logger.info(f"Token header: {token_header}")
+
+            kid = token_header.get("kid")
+            key = next((key for key in jwks_data["keys"] if key["kid"] == kid), None)
+            if not key:
+                raise AuthenticationFailed(f"No matching JWKS key for kid: {kid}")
+            jwks_data = {"keys": [key]}
+
+            public_key = RSAAlgorithm.from_jwk(key)
+
             payload = jwt.decode(
                 token,
                 public_key,
                 algorithms=["RS256"],
                 options={"verify_signature": True},
             )
+            logger.info(f"Decoded payload: {payload}")
         except jwt.ExpiredSignatureError:
             raise AuthenticationFailed("Token has expired.")
         except jwt.DecodeError as e:
+            logger.error(f"Token decode error: {str(e)} - Token: {token}")
             raise AuthenticationFailed("Token decode error.")
         except jwt.InvalidTokenError:
             raise AuthenticationFailed("Invalid token.")
+        except Exception as e:
+            logger.error(f"Unexpected error during JWT decoding: {str(e)}")
+            raise AuthenticationFailed("Authentication failed.")
 
         user_id = payload.get("sub")
         if user_id:
@@ -74,11 +91,12 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
 
 class ClerkSDK:
     def fetch_user_info(self, user_id: str):
-        response = requests.get(
-            f"{CLERK_API_URL}/users/{user_id}",
-            headers={"Authorization": f"Bearer {CLERK_SECRET_KEY}"},
-        )
-        if response.status_code == 200:
+        try:
+            response = requests.get(
+                f"{CLERK_API_URL}/users/{user_id}",
+                headers={"Authorization": f"Bearer {CLERK_SECRET_KEY}"},
+            )
+            response.raise_for_status()
             data = response.json()
             return {
                 "email_address": data["email_addresses"][0]["email_address"],
@@ -88,7 +106,8 @@ class ClerkSDK:
                     data["last_sign_in_at"] / 1000, tz=pytz.UTC
                 ),
             }, True
-        else:
+        except requests.RequestException as e:
+            logger.error(f"Error fetching user info from Clerk: {str(e)}")
             return {
                 "email_address": "",
                 "first_name": "",
@@ -99,10 +118,17 @@ class ClerkSDK:
     def get_jwks(self):
         jwks_data = cache.get(CACHE_KEY)
         if not jwks_data:
-            response = requests.get(f"{CLERK_FRONTEND_API_URL}/.well-known/jwks.json")
-            if response.status_code == 200:
+            try:
+                logger.info(f"Fetching JWKS from URL: {CLERK_JWKS_URL}")
+                response = requests.get(CLERK_JWKS_URL)
+                response.raise_for_status()
                 jwks_data = response.json()
-                cache.set(CACHE_KEY, jwks_data)  # cache indefinitely
-            else:
+                logger.info(f"JWKS response: {response.text}")
+                cache.set(CACHE_KEY, jwks_data, timeout=3600)  # cache for 1 hour
+            except requests.RequestException as e:
+                logger.error(f"Failed to fetch JWKS: {str(e)}")
                 raise AuthenticationFailed("Failed to fetch JWKS.")
+            except ValueError as e:
+                logger.error(f"Invalid JSON in JWKS response: {str(e)}")
+                raise AuthenticationFailed("Invalid JWKS data.")
         return jwks_data
