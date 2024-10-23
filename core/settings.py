@@ -37,6 +37,34 @@ ALLOWED_HOSTS = [
     '198.211.99.20', 'localhost', '127.0.0.1',
     "0.0.0.0"
 ]
+CORS_ALLOW_ALL_ORIGINS = True  # Only use this in development
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",  # Vite default port
+    "http://127.0.0.1:5173",
+]
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 
 # Application definition
@@ -102,14 +130,43 @@ WSGI_APPLICATION = 'core.wsgi.application'
 #     }
 # }
 
+# Database settings
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': env('DB_NAME'),
+#         'USER': env('DB_USER'),
+#         'PASSWORD': env('DB_PASSWORD'),
+#         'HOST': env('DB_HOST'),
+#         'PORT': env('DB_PORT', default='5432'),
+#         'OPTIONS': {
+#             'sslmode': 'require',
+#         },
+#     }
+# }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'unicas_db_bm62',
+#         'USER': 'unicas_db_bm62_user',
+#         'PASSWORD': '3Y1YkLPZYwz7bE5gTfiPkTtnjMB0fKOk',
+#         'HOST': 'dpg-cs95p23qf0us738jrlvg-a.oregon-postgres.render.com',
+#         'PORT': 5432,
+#         'OPTIONS': {
+#             'sslmode': 'require',
+#         },
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'unicas_db_bm62',
-        'USER': 'unicas_db_bm62_user',
-        'PASSWORD': '3Y1YkLPZYwz7bE5gTfiPkTtnjMB0fKOk',
-        'HOST': 'dpg-cs95p23qf0us738jrlvg-a.oregon-postgres.render.com',
-        'PORT': 5432,
+        'NAME': os.getenv('SUPABASE_DB_NAME'),
+        'USER': os.getenv('SUPABASE_DB_USER'),
+        'PASSWORD': os.getenv('SUPABASE_DB_PASSWORD'),
+        'HOST': os.getenv('SUPABASE_DB_HOST'),
+        'PORT': os.getenv('SUPABASE_DB_PORT'),
         'OPTIONS': {
             'sslmode': 'require',
         },

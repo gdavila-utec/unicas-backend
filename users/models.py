@@ -14,17 +14,58 @@ class RoleType(models.TextChoices):
     VOCAL = 'VOCAL', 'Vocal'
     SOCIO = 'SOCIO', 'Socio'
     NONE = 'NONE', 'None'
+
+class DocumentType(models.TextChoices):
+    DNI = 'DNI', 'DNI'
+    CE = 'CE', 'CE'
+    NONE = 'NONE', 'None'
     
 class CustomUser(AbstractUser):
-    document_type = models.CharField(max_length=3, choices=[('DNI', 'DNI'), ('CE', 'CE')])
-    full_name = models.CharField(max_length=255, null=False)
-    document_number = models.CharField(max_length=20)
+    # Basic Info
+    username = models.CharField(max_length=255, unique=True)
+    email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=255, null=True, blank=True)
+    last_name = models.CharField(max_length=255, null=True, blank=True)
+    full_name = models.CharField(max_length=255, blank=True)
+    
+    # User Type and Role
+    is_admin = models.BooleanField(default=False)
+    user_type = models.CharField(
+        max_length=20,
+        choices=UserType.choices,
+        default=UserType.PARTNER
+    )
+    
+    # Document Information
+    document_type = models.CharField(
+        max_length=10,
+        choices=DocumentType.choices,
+        default=DocumentType.NONE
+    )
+    document_number = models.CharField(max_length=20, blank=True)
+    
+    # Contact and Location
+    phone_number = models.CharField(max_length=15, blank=True)
+    province = models.CharField(max_length=100, blank=True)
+    district = models.CharField(max_length=100, blank=True)
+    address = models.CharField(max_length=255, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    country = models.CharField(max_length=100, blank=True)
+    
+    # Additional Information
     birth_date = models.DateField(null=True, blank=True)
-    province = models.CharField(max_length=100)
-    district = models.CharField(max_length=100)
-    address = models.CharField(max_length=255)
+    occupation = models.CharField(max_length=100, blank=True)
+    about = models.TextField(blank=True)
+    profile_picture = models.URLField(max_length=255, blank=True)
+    
+    # Specific Fields
     shares = models.IntegerField(default=0)
-    user_type = models.CharField(max_length=20, choices=UserType.choices, default=UserType.PARTNER)
-    role_type =models.CharField(max_length=20, choices=RoleType.choices,default=RoleType.NONE)
+    junta_count = models.IntegerField(default=0)
 
+    def __str__(self):
+        return self.email
+
+    @property
+    def is_admin_user(self):
+        return self.user_type == UserType.ADMIN  
     
