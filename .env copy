@@ -1,0 +1,13 @@
+SUPABASE_URL=https://khmzkxyorxxvojjanpas.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtobXpreHlvcnh4dm9qamFucGFzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcyOTU0MzYyOCwiZXhwIjoyMDQ1MTE5NjI4fQ.gjPk5F-7GQQhdMUkLfeuTE7pLfw_mdJ5_OEXzp0VFzM
+SUPABASE_DB_NAME=postgres
+SUPABASE_DB_USER=postgres.khmzkxyorxxvojjanpas
+SUPABASE_DB_PASSWORD=PacasVentures2024
+SUPABASE_DB_HOST=aws-0-us-west-1.pooler.supabase.com
+SUPABASE_DB_PORT=6543
+
+
+CLERK_FRONTEND_API_URL=https://sincere-dogfish-4.clerk.accounts.dev
+CLERK_SECRET_KEY=sk_test_JyBzVdxe8fJyLPxlwlqXWyaQ3z0NYl3fjd2aZ28U5L
+CLERK_JWKS_URL=https://sincere-dogfish-4.clerk.accounts.dev/.well-known/jwks.json
+DJANGO_SECRET_KEY='django-insecure-v+rgbb*e-pz*#^pb+2v^pth@o3h$@#9@2!(w6)0v(5r5up&6x9'

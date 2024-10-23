@@ -43,6 +43,21 @@ class CustomUser(AbstractUser):
         default=DocumentType.NONE
     )
     document_number = models.CharField(max_length=20, blank=True)
+
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='custom_user_set',  # Custom related_name to avoid conflict
+        blank=True,
+        help_text='The groups this user belongs to.',
+        verbose_name='groups'
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='custom_user_permissions',  # Custom related_name to avoid conflict
+        blank=True,
+        help_text='Specific permissions for this user.',
+        verbose_name='user permissions'
+    )
     
     # Contact and Location
     phone_number = models.CharField(max_length=15, blank=True)

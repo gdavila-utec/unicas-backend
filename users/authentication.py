@@ -1,7 +1,5 @@
-# middleware.py
 import datetime
 import logging
-
 from dotenv import load_dotenv
 import jwt
 import pytz
@@ -9,10 +7,11 @@ import requests
 from django.contrib.auth import get_user_model
 from users.models import CustomUser as User
 from django.core.cache import cache
-from jwt.algorithms import RSAAlgorithm
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 import os
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
+from jwt import algorithms
 
 load_dotenv()
 User = get_user_model()
@@ -32,7 +31,7 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
             return None
         try:
             token = auth_header.split(" ")[1]
-            logger.info(f"Received token: {token}")  # Log the token
+            logger.info(f"Received token: {token}")
         except IndexError:
             raise AuthenticationFailed("Bearer token not provided.")
         user = self.decode_jwt(token)
@@ -61,15 +60,19 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
             key = next((key for key in jwks_data["keys"] if key["kid"] == kid), None)
             if not key:
                 raise AuthenticationFailed(f"No matching JWKS key for kid: {kid}")
-            jwks_data = {"keys": [key]}
 
-            public_key = RSAAlgorithm.from_jwk(key)
+            # Use jwt_algorithms to handle the key
+            public_key = algorithms.RSAAlgorithm.from_jwk(key)
 
             payload = jwt.decode(
                 token,
                 public_key,
                 algorithms=["RS256"],
-                options={"verify_signature": True},
+                options={
+                    "verify_signature": True,
+                    "verify_aud": False,
+                    "verify_iss": False,
+                }
             )
             logger.info(f"Decoded payload: {payload}")
         except jwt.ExpiredSignatureError:

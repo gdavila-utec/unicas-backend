@@ -10,4 +10,4 @@ class Junta(models.Model):
     fecha_inicio = models.DateField()
     periodo = models.IntegerField(default=1)
     current_month = models.IntegerField(default=1)
-    members = models.ManyToManyField(User, related_name='juntas', null=True, blank=True)
+    members = models.ManyToManyField(User, related_name='juntas', blank=True)

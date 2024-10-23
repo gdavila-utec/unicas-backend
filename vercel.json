@@ -1,21 +1,31 @@
 {
     "version": 2,
     "builds": [{
-            "src": "core/wsgi.py",
-            "use": "@vercel/python"
-        },
-        {
-            "src": "static/**",
-            "use": "@vercel/static"
+        "src": "core/wsgi.py",
+        "use": "@vercel/python",
+        "config": {
+            "maxLambdaSize": "15mb",
+            "runtime": "python3.9"
         }
-    ],
+    }],
     "routes": [{
             "src": "/static/(.*)",
-            "dest": "/static/$1"
+            "dest": "/staticfiles/$1"
         },
         {
-            "src": "/media/(.*)",
-            "dest": "/media/$1"
+            "src": "/api/.*",
+            "methods": ["OPTIONS"],
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "X-Requested-With, Content-Type, Accept, Authorization, x-clerk-auth-status, x-clerk-auth-token",
+                "Access-Control-Max-Age": "86400"
+            },
+            "status": 204
+        },
+        {
+            "src": "/api/(.*)",
+            "dest": "core/wsgi.py"
         },
         {
             "src": "/(.*)",
@@ -23,7 +33,7 @@
         }
     ],
     "env": {
-        "PYTHON_VERSION": "3.9",
+        "PYTHONUNBUFFERED": "1",
         "DJANGO_SETTINGS_MODULE": "core.settings"
     }
 }
