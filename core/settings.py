@@ -25,17 +25,18 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-v+rgbb*e-pz*#^pb+2v^pth@o3h$@#9@2!(w6)0v(5r5up&6x9'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-v+rgbb*e-pz*#^pb+2v^pth@o3h$@#9@2!(w6)0v(5r5up&6x9')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
     "*",
     "http://localhost:8000",
     "unicas-backend.onrender.com",
     '198.211.99.20', 'localhost', '127.0.0.1',
-    "0.0.0.0"
+    "0.0.0.0",
+    ".vercel.app"  # Allow all Vercel domains
 ]
 CORS_ALLOW_ALL_ORIGINS = True  # Only use this in development
 CORS_ALLOWED_ORIGINS = [
@@ -123,42 +124,6 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-# Database settings
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': env('DB_NAME'),
-#         'USER': env('DB_USER'),
-#         'PASSWORD': env('DB_PASSWORD'),
-#         'HOST': env('DB_HOST'),
-#         'PORT': env('DB_PORT', default='5432'),
-#         'OPTIONS': {
-#             'sslmode': 'require',
-#         },
-#     }
-# }
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'unicas_db_bm62',
-#         'USER': 'unicas_db_bm62_user',
-#         'PASSWORD': '3Y1YkLPZYwz7bE5gTfiPkTtnjMB0fKOk',
-#         'HOST': 'dpg-cs95p23qf0us738jrlvg-a.oregon-postgres.render.com',
-#         'PORT': 5432,
-#         'OPTIONS': {
-#             'sslmode': 'require',
-#         },
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -207,9 +172,6 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
-
-# STATIC_URL = 'static/'
-
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
