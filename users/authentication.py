@@ -22,6 +22,7 @@ CLERK_FRONTEND_API_URL = os.getenv("CLERK_FRONTEND_API_URL")
 CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
 CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL")
 CACHE_KEY = "jwks_data"
+CLERK_ISSUER = os.getenv("CLERK_ISSUER")
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,15 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
 
     def decode_jwt(self, token):
         try:
+            # First decode without verification to log the claims
+            unverified_payload = jwt.decode(
+                token,
+                options={"verify_signature": False},
+                algorithms=["RS256"]
+            )
+            logger.info(f"Token issuer: {unverified_payload.get('iss')}")
+            logger.info(f"Token audience: {unverified_payload.get('aud')}")
+
             jwks_client = PyJWKClient(CLERK_JWKS_URL)
             signing_key = jwks_client.get_signing_key_from_jwt(token)
             payload = jwt.decode(
@@ -60,9 +70,12 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
                 algorithms=["RS256"],
                 options={
                     "verify_signature": True,
-                    "verify_aud": False,
-                    "verify_iss": False,
-                }
+                    "verify_aud": True,
+                    "verify_iss": True,
+                    "verify_issuer": CLERK_ISSUER,
+                },
+                audience=CLERK_ISSUER,
+                issuer=CLERK_ISSUER,
             )
             logger.info(f"Decoded payload: {payload}")
         except jwt.ExpiredSignatureError:
