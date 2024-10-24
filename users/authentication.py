@@ -60,7 +60,7 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
                 algorithms=["RS256"]
             )
             logger.info(f"Token issuer: {unverified_payload.get('iss')}")
-            logger.info(f"Token audience: {unverified_payload.get('aud')}")
+            logger.info(f"Token azp: {unverified_payload.get('azp')}")
 
             jwks_client = PyJWKClient(CLERK_JWKS_URL)
             signing_key = jwks_client.get_signing_key_from_jwt(token)
@@ -70,18 +70,24 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
                 algorithms=["RS256"],
                 options={
                     "verify_signature": True,
-                    "verify_aud": False,
-                    "verify_iss": True,
+                    "verify_aud": False,  # Don't verify audience since it's not present
+                    "verify_iss": True,   # Verify issuer
                 },
-                issuer="https://sincere-dogfish-4.clerk.accounts.dev" 
+                issuer="https://sincere-dogfish-4.clerk.accounts.dev"  # Include https://
             )
             logger.info(f"Decoded payload: {payload}")
+
+            # Optionally verify azp if you want to ensure the token is for your frontend
+            if payload.get('azp') != "https://unicas-frontend-tau.vercel.app":
+                raise AuthenticationFailed("Invalid authorized party")
+
         except jwt.ExpiredSignatureError:
             raise AuthenticationFailed("Token has expired.")
         except jwt.DecodeError as e:
             logger.error(f"Token decode error: {str(e)} - Token: {token}")
             raise AuthenticationFailed("Token decode error.")
-        except jwt.InvalidTokenError:
+        except jwt.InvalidTokenError as e:
+            logger.error(f"Invalid token error: {str(e)}")
             raise AuthenticationFailed("Invalid token.")
         except Exception as e:
             logger.error(f"Unexpected error during JWT decoding: {str(e)}")
