@@ -13,9 +13,10 @@ import os
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from jwt import algorithms
 from jwt import PyJWKClient
-
+import base64
+import json
 import time
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional, Tuple
 from django.conf import settings
 
 # Environment variables with defaults
@@ -35,6 +36,15 @@ CLERK_FRONTEND_API_URL = os.getenv("CLERK_FRONTEND_API_URL")
 CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
 CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL")
 CACHE_KEY = "jwks_data"
+
+
+# Helper function to pretty print dictionaries in logs
+def format_dict(d: Dict) -> str:
+    return json.dumps(d, indent=2, ensure_ascii=False)
+
+            # Helper function to clean values
+def clean_value(value: str) -> str:
+    return value.rstrip(';').strip() if value else ''
 
 
 class JWTAuthenticationMiddleware(BaseAuthentication):
@@ -64,23 +74,52 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
 
     def decode_jwt(self, token):
         try:
+            # Log the raw token structure
+            token_parts = token.split('.')
+            logger.info(f"Token has {len(token_parts)} parts")
+
+            # Decode the header and payload parts without verification
+            import base64
+            import json
+
+            def decode_base64_part(part):
+                # Add padding if needed
+                padding = 4 - (len(part) % 4)
+                if padding != 4:
+                    part += '=' * padding
+                
+                # Replace URL-safe characters
+                part = part.replace('-', '+').replace('_', '/')
+                
+                try:
+                    decoded = base64.b64decode(part)
+                    return json.loads(decoded)
+                except Exception as e:
+                    logger.error(f"Error decoding part: {str(e)}")
+                    return None
+
+            # Decode and log header
+            header_raw = decode_base64_part(token_parts[0])
+            logger.info(f"Token header: {header_raw}")
+
+            # Decode and log payload before JWT processing
+            payload_raw = decode_base64_part(token_parts[1])
+            logger.info(f"Raw decoded payload before JWT: {payload_raw}")
+
             # First decode without verification to log the claims
             unverified_payload = jwt.decode(
                 token,
                 options={"verify_signature": False},
                 algorithms=["RS256"]
             )
-            
-            # Helper function to clean values
-            def clean_value(value: str) -> str:
-                return value.rstrip(';').strip() if value else ''
+            logger.info(f"Unverified JWT payload: {unverified_payload}")
             
             # Clean and log the initial values
             clean_issuer = clean_value(unverified_payload.get('iss'))
             clean_azp = clean_value(unverified_payload.get('azp'))
             
-            logger.info(f"Token issuer: {clean_issuer}")
-            logger.info(f"Token azp: {clean_azp}")
+            logger.info(f"Token issuer (cleaned): {clean_issuer}")
+            logger.info(f"Token azp (cleaned): {clean_azp}")
 
             # Verify the token
             jwks_client = PyJWKClient(CLERK_JWKS_URL)
