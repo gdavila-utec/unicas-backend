@@ -13,6 +13,7 @@ import os
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from jwt import algorithms
 from jwt import PyJWKClient
+from typing import Optional
 
 load_dotenv()
 User = get_user_model()
@@ -22,7 +23,9 @@ CLERK_FRONTEND_API_URL = os.getenv("CLERK_FRONTEND_API_URL")
 CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
 CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL")
 CACHE_KEY = "jwks_data"
-CLERK_ISSUER = os.getenv("CLERK_ISSUER")
+
+CLERK_ISSUER = os.getenv('CLERK_ISSUER', 'https://sincere-dogfish-4.clerk.accounts.dev')
+ALLOWED_ORIGINS = os.getenv('ALLOWED_FRONTEND_URLS', 'http://localhost:3000,https://unicas-frontend-tau.vercel.app').split(',')
 
 logger = logging.getLogger(__name__)
 
@@ -60,19 +63,14 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
                 algorithms=["RS256"]
             )
             
-            # Clean up the values by removing any trailing semicolons
+            # Clean up values
             clean_issuer = unverified_payload.get('iss', '').rstrip(';')
             clean_azp = unverified_payload.get('azp', '').rstrip(';')
             
             logger.info(f"Token issuer: {clean_issuer}")
             logger.info(f"Token azp: {clean_azp}")
 
-            # List of allowed frontend origins
-            ALLOWED_ORIGINS = [
-                'http://localhost:3000',
-                'https://unicas-frontend-tau.vercel.app'
-            ]
-
+            # Verify the token
             jwks_client = PyJWKClient(CLERK_JWKS_URL)
             signing_key = jwks_client.get_signing_key_from_jwt(token)
             payload = jwt.decode(
@@ -84,17 +82,34 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
                     "verify_aud": False,
                     "verify_iss": True,
                 },
-                issuer="https://sincere-dogfish-4.clerk.accounts.dev"
+                issuer=CLERK_ISSUER
             )
 
-            # Clean up the azp from payload before verification
-            payload_azp = payload.get('azp', '').rstrip(';')
-            if payload_azp not in ALLOWED_ORIGINS:
-                raise AuthenticationFailed(f"Invalid authorized party: {payload_azp}")
+            # Clean and verify azp
+            azp = payload.get('azp', '').rstrip(';')
+            if azp not in ALLOWED_ORIGINS:
+                logger.warning(f"Invalid azp: {azp}. Allowed origins: {ALLOWED_ORIGINS}")
+                raise AuthenticationFailed("Invalid authorized party")
 
             logger.info(f"Decoded payload: {payload}")
 
+            # Get user ID
+            user_id = payload.get('sub')
+            if not user_id:
+                raise AuthenticationFailed("No user ID in token")
+
+            # Get or create user
+            try:
+                user, created = User.objects.get_or_create(username=user_id)
+                if created:
+                    logger.info(f"Created new user with ID: {user_id}")
+                return user
+            except Exception as e:
+                logger.error(f"Error creating/getting user: {str(e)}")
+                raise AuthenticationFailed("User creation failed")
+
         except jwt.ExpiredSignatureError:
+            logger.warning(f"Token expired")
             raise AuthenticationFailed("Token has expired.")
         except jwt.DecodeError as e:
             logger.error(f"Token decode error: {str(e)} - Token: {token}")
@@ -106,11 +121,6 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
             logger.error(f"Unexpected error during JWT decoding: {str(e)}")
             raise AuthenticationFailed("Authentication failed.")
 
-        user_id = payload.get("sub")
-        if user_id:
-            user, created = User.objects.get_or_create(username=user_id)
-            return user
-        return None
 
 class ClerkSDK:
     def fetch_user_info(self, user_id: str):
