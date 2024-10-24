@@ -70,12 +70,10 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
                 algorithms=["RS256"],
                 options={
                     "verify_signature": True,
-                    "verify_aud": True,
+                    "verify_aud": False,
                     "verify_iss": True,
-                    "verify_issuer": CLERK_ISSUER,
                 },
-                audience=CLERK_ISSUER,
-                issuer=CLERK_ISSUER,
+                issuer="https://sincere-dogfish-4.clerk.accounts.dev" 
             )
             logger.info(f"Decoded payload: {payload}")
         except jwt.ExpiredSignatureError:
