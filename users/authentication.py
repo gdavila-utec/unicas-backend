@@ -59,8 +59,19 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
                 options={"verify_signature": False},
                 algorithms=["RS256"]
             )
-            logger.info(f"Token issuer: {unverified_payload.get('iss')}")
-            logger.info(f"Token azp: {unverified_payload.get('azp')}")
+            
+            # Clean up the values by removing any trailing semicolons
+            clean_issuer = unverified_payload.get('iss', '').rstrip(';')
+            clean_azp = unverified_payload.get('azp', '').rstrip(';')
+            
+            logger.info(f"Token issuer: {clean_issuer}")
+            logger.info(f"Token azp: {clean_azp}")
+
+            # List of allowed frontend origins
+            ALLOWED_ORIGINS = [
+                'http://localhost:3000',
+                'https://unicas-frontend-tau.vercel.app'
+            ]
 
             jwks_client = PyJWKClient(CLERK_JWKS_URL)
             signing_key = jwks_client.get_signing_key_from_jwt(token)
@@ -70,16 +81,18 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
                 algorithms=["RS256"],
                 options={
                     "verify_signature": True,
-                    "verify_aud": False,  # Don't verify audience since it's not present
-                    "verify_iss": True,   # Verify issuer
+                    "verify_aud": False,
+                    "verify_iss": True,
                 },
-                issuer="https://sincere-dogfish-4.clerk.accounts.dev"  # Include https://
+                issuer="https://sincere-dogfish-4.clerk.accounts.dev"
             )
-            logger.info(f"Decoded payload: {payload}")
 
-            # Optionally verify azp if you want to ensure the token is for your frontend
-            if payload.get('azp') != "https://unicas-frontend-tau.vercel.app":
-                raise AuthenticationFailed("Invalid authorized party")
+            # Clean up the azp from payload before verification
+            payload_azp = payload.get('azp', '').rstrip(';')
+            if payload_azp not in ALLOWED_ORIGINS:
+                raise AuthenticationFailed(f"Invalid authorized party: {payload_azp}")
+
+            logger.info(f"Decoded payload: {payload}")
 
         except jwt.ExpiredSignatureError:
             raise AuthenticationFailed("Token has expired.")
