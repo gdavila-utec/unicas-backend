@@ -11,10 +11,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
-DEBUG = False  # Set to True for development
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
     '.vercel.app',
+    'web-production-e43a2.up.railway.app'
     'localhost',
     '127.0.0.1',
     '*'
@@ -68,19 +69,6 @@ ROOT_URLCONF = 'core.urls'
 # Custom User Model
 AUTH_USER_MODEL = 'users.CustomUser'
 
-# Database
-# DATABASE_URL = f"postgres://{os.getenv('SUPABASE_DB_USER')}:{os.getenv('SUPABASE_DB_PASSWORD')}@{os.getenv('SUPABASE_DB_HOST')}:{os.getenv('SUPABASE_DB_PORT')}/{os.getenv('SUPABASE_DB_NAME')}"
-
-# DATABASES = {
-#     'default': dj_database_url.config(
-#         default=DATABASE_URL,
-#         conn_max_age=600,
-#         conn_health_checks=True,
-#         ssl_require=True,
-#         options={'sslmode': 'require'}
-#     )
-# }
-
 DATABASE_URL = f"postgres://{os.getenv('SUPABASE_DB_USER')}:{os.getenv('SUPABASE_DB_PASSWORD')}@{os.getenv('SUPABASE_DB_HOST')}:{os.getenv('SUPABASE_DB_PORT')}/{os.getenv('SUPABASE_DB_NAME')}"
 
 DATABASES = {
@@ -97,7 +85,6 @@ DATABASES = {
     }
 }
 
-
 # Authentication
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -109,7 +96,6 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
-
 
 # Clerk settings
 CLERK_API_URL = "https://api.clerk.com/v1"

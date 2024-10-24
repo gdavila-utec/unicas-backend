@@ -1,39 +1,42 @@
 {
-    "version": 2,
-    "builds": [{
-        "src": "core/wsgi.py",
-        "use": "@vercel/python",
-        "config": {
-            "maxLambdaSize": "15mb",
-            "runtime": "python3.9"
-        }
-    }],
-    "routes": [{
-            "src": "/static/(.*)",
-            "dest": "/staticfiles/$1"
-        },
-        {
-            "src": "/api/.*",
-            "methods": ["OPTIONS"],
-            "headers": {
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-                "Access-Control-Allow-Headers": "X-Requested-With, Content-Type, Accept, Authorization, x-clerk-auth-status, x-clerk-auth-token",
-                "Access-Control-Max-Age": "86400"
-            },
-            "status": 204
-        },
-        {
-            "src": "/api/(.*)",
-            "dest": "core/wsgi.py"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "core/wsgi.py"
-        }
-    ],
-    "env": {
-        "PYTHONUNBUFFERED": "1",
-        "DJANGO_SETTINGS_MODULE": "core.settings"
+  "version": 2,
+  "builds": [
+    {
+      "src": "core/wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb",
+        "runtime": "python3.9"
+      }
     }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/staticfiles/$1"
+    },
+    {
+      "src": "/api/.*",
+      "methods": ["OPTIONS"],
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "X-Requested-With, Content-Type, Accept, Authorization, x-clerk-auth-status, x-clerk-auth-token",
+        "Access-Control-Max-Age": "86400"
+      },
+      "status": 204
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "core/wsgi.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "core/wsgi.py"
+    }
+  ],
+  "env": {
+    "PYTHONUNBUFFERED": "1",
+    "DJANGO_SETTINGS_MODULE": "core.settings"
+  }
 }
