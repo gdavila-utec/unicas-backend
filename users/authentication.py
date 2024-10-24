@@ -93,37 +93,37 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
     #         return user
     #     return None
 
-def decode_jwt(self, token):
-    try:
-        jwks_client = PyJWKClient(CLERK_JWKS_URL)
-        signing_key = jwks_client.get_signing_key_from_jwt(token)
-        payload = jwt.decode(
-            token,
-            signing_key.key,
-            algorithms=["RS256"],
-            options={
-                "verify_signature": True,
-                "verify_aud": False,
-                "verify_iss": False,
-            }
-        )
-        logger.info(f"Decoded payload: {payload}")
-    except jwt.ExpiredSignatureError:
-        raise AuthenticationFailed("Token has expired.")
-    except jwt.DecodeError as e:
-        logger.error(f"Token decode error: {str(e)} - Token: {token}")
-        raise AuthenticationFailed("Token decode error.")
-    except jwt.InvalidTokenError:
-        raise AuthenticationFailed("Invalid token.")
-    except Exception as e:
-        logger.error(f"Unexpected error during JWT decoding: {str(e)}")
-        raise AuthenticationFailed("Authentication failed.")
+    def decode_jwt(self, token):
+        try:
+            jwks_client = PyJWKClient(CLERK_JWKS_URL)
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
+            payload = jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["RS256"],
+                options={
+                    "verify_signature": True,
+                    "verify_aud": False,
+                    "verify_iss": False,
+                }
+            )
+            logger.info(f"Decoded payload: {payload}")
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except jwt.DecodeError as e:
+            logger.error(f"Token decode error: {str(e)} - Token: {token}")
+            raise AuthenticationFailed("Token decode error.")
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed("Invalid token.")
+        except Exception as e:
+            logger.error(f"Unexpected error during JWT decoding: {str(e)}")
+            raise AuthenticationFailed("Authentication failed.")
 
-    user_id = payload.get("sub")
-    if user_id:
-        user, created = User.objects.get_or_create(username=user_id)
-        return user
-    return None
+        user_id = payload.get("sub")
+        if user_id:
+            user, created = User.objects.get_or_create(username=user_id)
+            return user
+        return None
 
 class ClerkSDK:
     def fetch_user_info(self, user_id: str):
