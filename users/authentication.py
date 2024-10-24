@@ -38,7 +38,7 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
         user = self.decode_jwt(token)
         if not user:
             return None
-        
+
         clerk = ClerkSDK()
         info, found = clerk.fetch_user_info(user.username)
         if found:
@@ -49,49 +49,6 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
             user.save()
 
         return user, None
-
-    # def decode_jwt(self, token):
-    #     clerk = ClerkSDK()
-    #     try:
-    #         jwks_data = clerk.get_jwks()
-    #         token_header = jwt.get_unverified_header(token)
-    #         logger.info(f"Token header: {token_header}")
-
-    #         kid = token_header.get("kid")
-    #         key = next((key for key in jwks_data["keys"] if key["kid"] == kid), None)
-    #         if not key:
-    #             raise AuthenticationFailed(f"No matching JWKS key for kid: {kid}")
-
-    #         # Use jwt_algorithms to handle the key
-    #         public_key = algorithms.RSAAlgorithm.from_jwk(key)
-
-    #         payload = jwt.decode(
-    #             token,
-    #             public_key,
-    #             algorithms=["RS256"],
-    #             options={
-    #                 "verify_signature": True,
-    #                 "verify_aud": False,
-    #                 "verify_iss": False,
-    #             }
-    #         )
-    #         logger.info(f"Decoded payload: {payload}")
-    #     except jwt.ExpiredSignatureError:
-    #         raise AuthenticationFailed("Token has expired.")
-    #     except jwt.DecodeError as e:
-    #         logger.error(f"Token decode error: {str(e)} - Token: {token}")
-    #         raise AuthenticationFailed("Token decode error.")
-    #     except jwt.InvalidTokenError:
-    #         raise AuthenticationFailed("Invalid token.")
-    #     except Exception as e:
-    #         logger.error(f"Unexpected error during JWT decoding: {str(e)}")
-    #         raise AuthenticationFailed("Authentication failed.")
-
-    #     user_id = payload.get("sub")
-    #     if user_id:
-    #         user, created = User.objects.get_or_create(username=user_id)
-    #         return user
-    #     return None
 
     def decode_jwt(self, token):
         try:
