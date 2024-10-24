@@ -13,7 +13,19 @@ import os
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from jwt import algorithms
 from jwt import PyJWKClient
-from typing import Optional
+
+import time
+from typing import Optional, Dict, Any
+from django.conf import settings
+
+# Environment variables with defaults
+CLERK_ISSUER = os.getenv('CLERK_ISSUER', 'https://sincere-dogfish-4.clerk.accounts.dev')
+ALLOWED_ORIGINS = os.getenv('ALLOWED_FRONTEND_URLS', 
+    'http://localhost:3000,'
+    'https://unicas-frontend-tau.vercel.app'
+).split(',')
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 User = get_user_model()
@@ -24,10 +36,6 @@ CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
 CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL")
 CACHE_KEY = "jwks_data"
 
-CLERK_ISSUER = os.getenv('CLERK_ISSUER', 'https://sincere-dogfish-4.clerk.accounts.dev')
-ALLOWED_ORIGINS = os.getenv('ALLOWED_FRONTEND_URLS', 'http://localhost:3000,https://unicas-frontend-tau.vercel.app').split(',')
-
-logger = logging.getLogger(__name__)
 
 class JWTAuthenticationMiddleware(BaseAuthentication):
     def authenticate(self, request):
@@ -63,9 +71,13 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
                 algorithms=["RS256"]
             )
             
-            # Clean up values
-            clean_issuer = unverified_payload.get('iss', '').rstrip(';')
-            clean_azp = unverified_payload.get('azp', '').rstrip(';')
+            # Helper function to clean values
+            def clean_value(value: str) -> str:
+                return value.rstrip(';').strip() if value else ''
+            
+            # Clean and log the initial values
+            clean_issuer = clean_value(unverified_payload.get('iss'))
+            clean_azp = clean_value(unverified_payload.get('azp'))
             
             logger.info(f"Token issuer: {clean_issuer}")
             logger.info(f"Token azp: {clean_azp}")
@@ -85,22 +97,37 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
                 issuer=CLERK_ISSUER
             )
 
-            # Clean and verify azp
-            azp = payload.get('azp', '').rstrip(';')
+            # Clean all values in the payload
+            cleaned_payload = {
+                key: clean_value(value) if isinstance(value, str) else value 
+                for key, value in payload.items()
+            }
+            
+            # Verify azp
+            azp = cleaned_payload.get('azp')
             if azp not in ALLOWED_ORIGINS:
                 logger.warning(f"Invalid azp: {azp}. Allowed origins: {ALLOWED_ORIGINS}")
                 raise AuthenticationFailed("Invalid authorized party")
 
-            logger.info(f"Decoded payload: {payload}")
-
             # Get user ID
-            user_id = payload.get('sub')
+            user_id = cleaned_payload.get('sub')
             if not user_id:
                 raise AuthenticationFailed("No user ID in token")
 
+            logger.info(f"Decoded payload: {cleaned_payload}")
+
             # Get or create user
             try:
-                user, created = User.objects.get_or_create(username=user_id)
+                user, created = User.objects.get_or_create(
+                    username=user_id,
+                    defaults={
+                        'is_active': True,
+                        'date_joined': datetime.datetime.fromtimestamp(
+                            cleaned_payload.get('iat', int(time.time())),
+                            tz=pytz.UTC
+                        )
+                    }
+                )
                 if created:
                     logger.info(f"Created new user with ID: {user_id}")
                 return user
@@ -109,7 +136,7 @@ class JWTAuthenticationMiddleware(BaseAuthentication):
                 raise AuthenticationFailed("User creation failed")
 
         except jwt.ExpiredSignatureError:
-            logger.warning(f"Token expired")
+            logger.warning("Token expired")
             raise AuthenticationFailed("Token has expired.")
         except jwt.DecodeError as e:
             logger.error(f"Token decode error: {str(e)} - Token: {token}")
